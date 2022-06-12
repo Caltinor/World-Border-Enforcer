@@ -1,0 +1,31 @@
+modLoader="javafml" 
+loaderVersion="[41,)"
+license="MIT"
+
+[[mods]] 
+modId="worldborderenforcer" 
+version="${file.jarVersion}"
+displayName="World Border Enforcer" 
+credits="Thanks for this example mod goes to Java" 
+authors="Caltinor"
+description='''
+This is a server mod to prevent chunk generation outside of the world border.
+
+This mod is intended to let you control world generation over time as you may add content.
+
+You can also let the region naturally expand over time based on configurable parameters.
+'''
+
+[[dependencies.worldborderenforcer]]
+    modId="forge" 
+    mandatory=true 
+    versionRange="[41,)" 
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.worldborderenforcer]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.19,1.20)"
+    ordering="NONE"
+    side="BOTH"
