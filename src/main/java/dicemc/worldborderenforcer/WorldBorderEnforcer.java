@@ -28,7 +28,8 @@ public class WorldBorderEnforcer{
     @SubscribeEvent
     public void onServerStart(ServerStartingEvent event) {
     	server = event.getServer();
-    	nextHourToCheck = ONE_HOUR + server.overworld().getGameTime() - (server.overworld().getGameTime() % (ONE_HOUR * Config.GROW_INTERVAL.get()));
+    	long baseInterval = (int)((double)ONE_HOUR * Config.GROW_INTERVAL.get());
+    	nextHourToCheck = baseInterval + server.overworld().getGameTime() - (server.overworld().getGameTime() % baseInterval);
     	WorldBorder border = event.getServer().overworld().getWorldBorder();
     	Config.WORLD_SPAWN_X.set(border.getCenterX());
     	Config.WORLD_SPAWN_Z.set(border.getCenterZ());
@@ -44,8 +45,10 @@ public class WorldBorderEnforcer{
     @SubscribeEvent
     public void onServerTick(ServerTickEvent event) {
     	if (server.overworld().getGameTime() >= nextHourToCheck) {
-    		nextHourToCheck += ONE_HOUR * Config.GROW_INTERVAL.get();
+    		nextHourToCheck += (int)((double)ONE_HOUR * Config.GROW_INTERVAL.get());
     		double currentSize = server.overworld().getWorldBorder().getSize();
+    		if (currentSize >= Config.MAX_RANGE.get()) 
+    			return;
     		server.overworld().getWorldBorder().setSize(currentSize + getRateForCurrentRange());
     	}
     }
