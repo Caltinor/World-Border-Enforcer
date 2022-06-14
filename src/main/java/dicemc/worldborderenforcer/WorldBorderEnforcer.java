@@ -1,7 +1,7 @@
 package dicemc.worldborderenforcer;
 
-import java.util.Comparator;
 import dicemc.worldborderenforcer.config.Config;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraftforge.common.MinecraftForge;
@@ -49,13 +49,17 @@ public class WorldBorderEnforcer{
     		double currentSize = server.overworld().getWorldBorder().getSize();
     		if (currentSize >= Config.MAX_RANGE.get()) 
     			return;
-    		server.overworld().getWorldBorder().setSize(currentSize + getRateForCurrentRange());
+    		double growth = getRateForCurrentRange();
+    		server.overworld().getWorldBorder().setSize(currentSize + growth);
+    		server.getPlayerList().getPlayers().forEach(player -> {
+    			player.sendSystemMessage(Component.translatable("worldborderenforcer.chat.border_grow", growth));
+    		});
     	}
     }
     
     private double getRateForCurrentRange() {
     	double currentRange = server.overworld().getWorldBorder().getSize();
-    	double currentLevel = Config.GROW_LEVELS.get().keySet().stream().filter(value -> value <= currentRange).max(Comparator.reverseOrder()).get();
+    	double currentLevel = Config.GROW_LEVELS.get().keySet().stream().filter(value -> value <= currentRange).max(Double::compare).get();
     	return Config.GROW_LEVELS.get().get(currentLevel);
     }
 
