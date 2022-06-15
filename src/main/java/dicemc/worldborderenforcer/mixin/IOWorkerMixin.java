@@ -12,9 +12,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import dicemc.worldborderenforcer.config.Config;
+import dicemc.worldborderenforcer.WorldBorderEnforcer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 
@@ -59,15 +60,11 @@ public abstract class IOWorkerMixin implements Consumer<RegionFileStorage>
 		}
 		
 		private boolean isChunkInBounds(ChunkPos pos) {
-			return pos.getMaxBlockX() >= Config.WORLD_SPAWN_X.get() - borderRadius()
-				&& pos.getMinBlockX() <= Config.WORLD_SPAWN_X.get() + borderRadius()
-				&& pos.getMaxBlockZ() >= Config.WORLD_SPAWN_Z.get() - borderRadius()
-				&& pos.getMinBlockX() <= Config.WORLD_SPAWN_Z.get() + borderRadius();
-		}
-		
-		private double borderRadius() {
-			return Config.WORLD_BORDER_CURRENT.get() / 2d;
-		}
-		
+			WorldBorder border = WorldBorderEnforcer.server.overworld().getWorldBorder();
+			return pos.getMaxBlockX() >= border.getCenterX() - border.getSize()
+				&& pos.getMinBlockX() <= border.getCenterX() + border.getSize()
+				&& pos.getMaxBlockZ() >= border.getCenterZ() - border.getSize()
+				&& pos.getMinBlockX() <= border.getCenterZ() + border.getSize();
+		}		
 	}
 }

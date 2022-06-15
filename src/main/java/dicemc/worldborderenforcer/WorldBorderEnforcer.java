@@ -1,16 +1,19 @@
 package dicemc.worldborderenforcer;
 
-import dicemc.worldborderenforcer.config.Config;
+import java.util.HashMap;
+import java.util.Map;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.border.WorldBorder;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.ServerTickEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 @Mod(WorldBorderEnforcer.MODID)
 public class WorldBorderEnforcer{
@@ -18,7 +21,6 @@ public class WorldBorderEnforcer{
     
     public WorldBorderEnforcer(){
     	ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.SERVER_CONFIG);
-    	ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.DANGER_CONFIG, "WorldBorderEnforcer-DangerZone.toml");
     	
     	MinecraftForge.EVENT_BUS.register(this);
     }
@@ -26,21 +28,20 @@ public class WorldBorderEnforcer{
     private static final long ONE_HOUR = 72000;
     
     @SubscribeEvent
-    public void onServerStart(ServerStartingEvent event) {
+    public void onServerPreStart(ServerAboutToStartEvent event) {
     	server = event.getServer();
-    	long baseInterval = (int)((double)ONE_HOUR * Config.GROW_INTERVAL.get());
-    	nextHourToCheck = baseInterval + server.overworld().getGameTime() - (server.overworld().getGameTime() % baseInterval);
-    	WorldBorder border = event.getServer().overworld().getWorldBorder();
-    	Config.WORLD_SPAWN_X.set(border.getCenterX());
-    	Config.WORLD_SPAWN_Z.set(border.getCenterZ());
-    	if (Config.WORLD_BORDER_CURRENT.get() == 0)
-    		Config.WORLD_BORDER_CURRENT.set(border.getSize());
-    	else
-    		border.setSize(Config.WORLD_BORDER_CURRENT.get());
     }
     
-    MinecraftServer server = null;
+    @SubscribeEvent
+    public void onServerStart(ServerStartingEvent event) {
+    	long baseInterval = (int)((double)ONE_HOUR * Config.GROW_INTERVAL.get());
+    	nextHourToCheck = baseInterval + server.overworld().getGameTime() - (server.overworld().getGameTime() % baseInterval);
+    	mapConfigToMap();
+    }
+    
+    public static MinecraftServer server = null;
     long nextHourToCheck = 0;
+    Map<Double, Double> growthRates;
     
     @SubscribeEvent
     public void onServerTick(ServerTickEvent event) {
@@ -59,8 +60,24 @@ public class WorldBorderEnforcer{
     
     private double getRateForCurrentRange() {
     	double currentRange = server.overworld().getWorldBorder().getSize();
-    	double currentLevel = Config.GROW_LEVELS.get().keySet().stream().filter(value -> value <= currentRange).max(Double::compare).get();
-    	return Config.GROW_LEVELS.get().get(currentLevel);
+    	double currentLevel = growthRates.keySet().stream().filter(value -> value <= currentRange).max(Double::compare).get();
+    	return growthRates.get(currentLevel);
+    }
+    
+    @SubscribeEvent
+	public void onConfigReload(ModConfigEvent.Reloading event) {
+    	if (event.getConfig().getFileName().equalsIgnoreCase(MODID+"-server.toml"))
+    		mapConfigToMap();
     }
 
+    private void mapConfigToMap() {
+    	growthRates = new HashMap<>();
+    	Config.GROW_LEVELS.get().forEach(str -> {
+    		int commaIndex = str.indexOf(":");
+    		double key = Double.valueOf(str.substring(0, commaIndex));
+    		double value = Double.valueOf(str.substring(commaIndex+1, str.length()));
+    		System.out.println(key+"|"+value);
+    		growthRates.put(key, value);
+    	});
+    }
 }
